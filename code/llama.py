@@ -65,7 +65,7 @@ def load_data(csv_path):
     labels = data["valid"].tolist()
     return texts, labels
 
-csv_path = "../gpt_data_res/netbeans/netbeans_after_nltk.csv"
+csv_path = "../data/netbeans/netbeans.csv"
 texts, labels = load_data(csv_path)
 
 # 数据划分
@@ -98,7 +98,7 @@ checkpoint_path = "../llama_data_res/netbeans/checkpoint"
 training_args = TrainingArguments(
     learning_rate=1e-5,
     output_dir="../llama_data_res/netbeans/checkpoint",
-    num_train_epochs=3,
+    num_train_epochs=10,
     per_device_train_batch_size=4,
     per_device_eval_batch_size=4,
     warmup_steps=500,

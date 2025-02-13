@@ -32,12 +32,12 @@ from tensorflow.keras.callbacks import EarlyStopping
 ###################################################################################
 
 
-csv_path = '../data/netbeans/netbeans_after_nltk.csv'
+csv_path = '../data/netbeans/netbeans.csv'
 w2v_path = '../model/word2vec/netbeans/'
 t2v_path = '../model/token_index/netbeans/'
 model_path = '../model/trained_model/netbeans/'
 pic_dir = '../pics/netbeans/'
-result_txt_path = '../result/netbeans/result1.txt'
+result_txt_path = '../result/netbeans/result.txt'
 
 
 def plot_and_save(epochs, train_values, val_values, title, ylabel, filename):
@@ -218,9 +218,8 @@ if __name__ == '__main__':
         # 1. 数据信息
         max_features = 171950
         max_len = 256
-        text_len = 248   #248
-        batch_size = 16
-
+        text_len = 248
+        batch_size = 128
 
         with open(w2v_path + 'word_index.pkl', 'rb') as pkl_word_index:
             word_index = pickle.load(pkl_word_index)
@@ -277,8 +276,6 @@ if __name__ == '__main__':
         y_train = np.array(y_train)
         y_test = np.array(y_test)
 
-        print('x_train shape:', x_train.shape)
-        print('x_test shape:', x_test.shape)
 
         # 检查是否有保存的模型
         if os.path.exists(model_path):
@@ -362,74 +359,3 @@ if __name__ == '__main__':
                    + "fp:" + str(fp) + '\n' + "tn:" + str(tn) + '\n' + "accuracy:" + str(accuracy) + '\n'
                    + "precision:" + str(precision) + '\n' + "recall:" + str(recall) + '\n' + "f1_score:" + str(f1_score) + '\n')
         file.close()
-
-
-        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-        import numpy as np
-        import pandas as pd
-        import matplotlib.pyplot as plt
-
-        # 特征列表
-        features = ['PRO', 'COM', 'VER', 'SEV', 'PRI', 'REP', 'ASS', 'ATT']
-
-        # 特征索引
-        feature_indices = [248 + i for i in range(len(features))]
-
-        # 存储各个指标的贡献变化
-        roc_auc_importance = {}
-        accuracy_importance = {}
-        precision_importance = {}
-        recall_importance = {}
-        f1_score_importance = {}
-
-        # 基于完整数据计算基准值
-        base_predictions = model.predict(x_test).flatten()
-        base_roc_auc = roc_auc_score(y_test, base_predictions)
-        base_accuracy = accuracy_score(y_test, base_predictions >= 0.5)
-        base_precision = precision_score(y_test, base_predictions >= 0.5)
-        base_recall = recall_score(y_test, base_predictions >= 0.5)
-        base_f1_score = f1_score(y_test, base_predictions >= 0.5)
-
-        # 遍历特征，计算特征重要性
-        for feature, idx in zip(features, feature_indices):
-            print(f"Evaluating feature importance for: {feature}")
-
-            # 创建数据副本，打乱当前特征的值
-            perturbed_data = x_test.copy()
-            np.random.shuffle(perturbed_data[:, idx])
-
-            # 获取预测结果
-            perturbed_predictions = model.predict(perturbed_data).flatten()
-
-            # 计算各个指标的变化
-            roc_auc_importance[feature] = base_roc_auc - roc_auc_score(y_test, perturbed_predictions)
-            accuracy_importance[feature] = base_accuracy - accuracy_score(y_test, perturbed_predictions >= 0.5)
-            precision_importance[feature] = base_precision - precision_score(y_test, perturbed_predictions >= 0.5)
-            recall_importance[feature] = base_recall - recall_score(y_test, perturbed_predictions >= 0.5)
-            f1_score_importance[feature] = base_f1_score - f1_score(y_test, perturbed_predictions >= 0.5)
-
-        # 输出并保存结果
-        print("ROC AUC Importance:", roc_auc_importance)
-        print("Accuracy Importance:", accuracy_importance)
-        print("Precision Importance:", precision_importance)
-        print("Recall Importance:", recall_importance)
-        print("F1-Score Importance:", f1_score_importance)
-
-        # 保存特征重要性结果
-        feature_importance_df = pd.DataFrame({
-            'Feature': features,
-            'ROC_AUC_Importance': [roc_auc_importance[f] for f in features],
-            'Accuracy_Importance': [accuracy_importance[f] for f in features],
-            'Precision_Importance': [precision_importance[f] for f in features],
-            'Recall_Importance': [recall_importance[f] for f in features],
-            'F1_Score_Importance': [f1_score_importance[f] for f in features],
-        })
-        feature_importance_df.to_csv(result_txt_path.replace('result1.txt', 'feature_importance.csv'), index=False)
-
-        # 绘制特征重要性图表（以ROC_AUC为例，可扩展到其他指标）
-        plt.figure(figsize=(10, 6))
-        plt.barh(features, [roc_auc_importance[f] for f in features], color='skyblue')
-        plt.xlabel('Importance (ROC AUC)')
-        plt.title('Feature Importance')
-        plt.savefig(pic_dir + 'feature_importance_roc_auc.png')
-        plt.close()
